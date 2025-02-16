@@ -1,41 +1,39 @@
 // ==UserScript==
-// @name         Fake Date Override
+// @name         Fake Date Override (Chrome Fix)
 // @namespace    fake-date-script
-// @version      1.0
-// @description  Override browser date globally using Tampermonkey
+// @version      1.1
+// @description  Override the browser's date globally using Tampermonkey (Chrome Compatible)
 // @match        *://*/*
-// @grant        unsafeWindow
+// @grant        none
 // @run-at       document-start
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    // Define the fake date: February 16, 2025, at 00:39 UTC
+    // Define the fake date (February 16, 2025, at 00:39 UTC)
     const fakeDate = new Date('2025-02-16T00:39:00.000Z');
 
-    // Override the global Date object
-    class FakeDate extends Date {
-        constructor(...args) {
+    // Override the Date constructor globally
+    (function() {
+        const OriginalDate = Date;
+
+        function FakeDate(...args) {
             if (args.length === 0) {
-                return fakeDate;
+                return new OriginalDate(fakeDate);
             }
-            return new Date(...args);
+            return new OriginalDate(...args);
         }
 
-        static now() {
-            return fakeDate.getTime();
-        }
+        FakeDate.prototype = OriginalDate.prototype;
+        FakeDate.now = () => fakeDate.getTime();
+        FakeDate.parse = OriginalDate.parse;
+        FakeDate.UTC = OriginalDate.UTC;
 
-        static parse(str) {
-            return Date.parse(str);
-        }
-
-        static UTC(...args) {
-            return Date.UTC(...args);
-        }
-    }
-
-    // Override Date in the actual page context
-    unsafeWindow.Date = FakeDate;
+        Object.defineProperty(window, 'Date', {
+            value: FakeDate,
+            writable: false,
+            configurable: false
+        });
+    })();
 })();
